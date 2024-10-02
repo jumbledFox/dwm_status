@@ -1,15 +1,9 @@
-use std::{error::Error, ffi::CString, fs, ptr, thread, time::Duration};
+use std::{error::Error, ffi::CString, fs, ptr, thread, time::{Duration, Instant}};
 
-use chrono::{Local, Timelike, Utc};
+use chrono::Local;
 use x11::xlib;
 
 const BATTERY_BARS: usize = 10;
-pub mod color {
-    pub const RED:    &str = "\x1b[31m"; // Red
-    pub const GREEN:  &str = "\x1b[32m"; // Green
-    pub const YELLOW: &str = "\x1b[33m"; // Yellow
-    pub const RESET:  &str = "\x1b[0m";  // Reset to default
-}
 
 fn main() {
     let display = unsafe { xlib::XOpenDisplay(ptr::null())};
@@ -22,19 +16,28 @@ fn main() {
     let screen_num = unsafe { xlib::XDefaultScreen(display) };
     let root_window = unsafe { xlib::XRootWindow(display, screen_num) };
 
+    let mut x: usize = 0;
+    let mut d: isize = 1;
     loop {
-        let now = Local::now();
+        let mut frame = [' '; 100];
+        if x == 0 && d == -1 {
+            d = 1;
+        }
+        if x == 99 && d == 1 {
+            d = -1;
+        }
+        x = x.saturating_add_signed(d);
+        frame[x] = '󰄛';
+
         let current_time = Local::now().format("%d/%m/%y   %H:%M:%S").to_string();
         let battery = match battery_info() {
-            Ok(b) => b,
-            Err(e) => {
-                eprintln!("Error getting battery: {}", e);
-                String::from("Err!!.. :P")
-            }
+            Ok(b) => format!("   {b}"),
+            Err(_) => String::new(),
         };
 
         // Change the root window name
-        let new_name = format!("jumbledFox :3   {}   {}", current_time, battery);
+        let new_name = format!("{}| jumbledFox :3   {}{}", String::from_iter(frame), current_time, battery);
+        // let new_name = format!("jumbledFox :3   {}{}", current_time, battery);
         let new_name_c = CString::new(new_name).expect("Failed to make CString!!!");
 
         unsafe {
@@ -43,8 +46,9 @@ fn main() {
         }
 
         // Wait until the next second
-        let millis_until_next_second = 1000 - now.timestamp_subsec_millis() as u64;
-        thread::sleep(Duration::from_millis(millis_until_next_second));
+        // let millis_until_next_second = 1000 - now.timestamp_subsec_millis() as u64;
+        // thread::sleep(Duration::from_millis(millis_until_next_second));
+        thread::sleep(Duration::from_millis(17));
     }
 }
 
