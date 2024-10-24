@@ -1,4 +1,4 @@
-use std::{error::Error, ffi::CString, fs, ptr, thread, time::{Duration, Instant}};
+use std::{error::Error, ffi::CString, fs, ptr, thread, time::Duration};
 
 use chrono::Local;
 use x11::xlib;
@@ -16,19 +16,8 @@ fn main() {
     let screen_num = unsafe { xlib::XDefaultScreen(display) };
     let root_window = unsafe { xlib::XRootWindow(display, screen_num) };
 
-    let mut x: usize = 0;
-    let mut d: isize = 1;
     loop {
-        let mut frame = [' '; 100];
-        if x == 0 && d == -1 {
-            d = 1;
-        }
-        if x == 99 && d == 1 {
-            d = -1;
-        }
-        x = x.saturating_add_signed(d);
-        frame[x] = '󰄛';
-
+        let now = Local::now();
         let current_time = Local::now().format("%d/%m/%y   %H:%M:%S").to_string();
         let battery = match battery_info() {
             Ok(b) => format!("   {b}"),
@@ -36,8 +25,7 @@ fn main() {
         };
 
         // Change the root window name
-        let new_name = format!("{}| jumbledFox :3   {}{}", String::from_iter(frame), current_time, battery);
-        // let new_name = format!("jumbledFox :3   {}{}", current_time, battery);
+        let new_name = format!("jumbledFox :3   {}{}", current_time, battery);
         let new_name_c = CString::new(new_name).expect("Failed to make CString!!!");
 
         unsafe {
@@ -46,9 +34,8 @@ fn main() {
         }
 
         // Wait until the next second
-        // let millis_until_next_second = 1000 - now.timestamp_subsec_millis() as u64;
-        // thread::sleep(Duration::from_millis(millis_until_next_second));
-        thread::sleep(Duration::from_millis(17));
+        let millis_until_next_second = 1000 - now.timestamp_subsec_millis() as u64;
+        thread::sleep(Duration::from_millis(millis_until_next_second));
     }
 }
 
